@@ -29,7 +29,7 @@ from utils import AverageMeter
 # part I and II
 from student_code import CustomConv2d, default_model
 # part III
-from student_code import default_attack, default_attention, default_visfunction
+#from student_code import default_attack, default_attention, default_visfunction
 
 # the arg parser
 parser = argparse.ArgumentParser(description='PyTorch Image Classification')

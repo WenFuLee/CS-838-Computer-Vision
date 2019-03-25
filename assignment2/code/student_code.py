@@ -60,10 +60,22 @@ class CustomConv2DFunction(Function):
     #################################################################################
     # Fill in the code here
     #################################################################################
+    # Unfold input and weight
+    input_unf = unfold(input_feats, kernel_size=(kernel_size, kernel_size), padding=padding, stride=stride)
+    wgt_unf = unfold(weight, kernel_size=(kernel_size, kernel_size))
+
+    # Calculate unfolded output
+    out_unf = input_unf.transpose(1, 2).matmul(wgt_unf[0:, 0:, 0].t()).transpose(1, 2).add(bias.reshape(-1,1))
+
+    # Fold output    
+    h_o = int(math.floor((input_feats.size(2) + 2 * padding - kernel_size) / stride) + 1)
+    w_o = int(math.floor((input_feats.size(3) + 2 * padding - kernel_size) / stride) + 1)
+    output = fold(out_unf, output_size=(h_o, w_o), kernel_size=(1, 1))
 
     # save for backward (you need to save the unfolded tensor into ctx)
-    # ctx.save_for_backward(your_vars, weight, bias)
-
+    # ctx.save_for_backward(your_vars, weight, bias)   
+    ctx.save_for_backward(input_unf, wgt_unf, weight, bias)
+       
     return output
 
   @staticmethod
@@ -82,6 +94,7 @@ class CustomConv2DFunction(Function):
     """
     # unpack tensors and initialize the grads
     # your_vars, weight, bias = ctx.saved_tensors
+    input_unf, wgt_unf, weight, bias = ctx.saved_tensors
     grad_input = grad_weight = grad_bias = None
 
     # recover the conv params
@@ -95,11 +108,25 @@ class CustomConv2DFunction(Function):
     # Fill in the code here
     #################################################################################
     # compute the gradients w.r.t. input and params
+    # Unfold output gradient
+    grad_output_unf = unfold(grad_output, kernel_size=(1, 1))
 
+    # Calculate input gradient
+    grad_input_unf = grad_output_unf.transpose(1, 2).matmul(wgt_unf[0:, 0:, 0]).transpose(1, 2)
+    
+    # Fold input gradient
+    grad_input = fold(grad_input_unf, output_size=(input_height, input_width), kernel_size=(kernel_size, kernel_size), padding=padding, stride=stride)
+    
+    # Calculate weight gradient
+    grad_weight_unf = torch.bmm(grad_output_unf, input_unf.transpose(1, 2))
+   
+    # Fold weight gradient    
+    grad_weight = grad_weight_unf.sum((0)).view(grad_weight_unf.size(1), -1, kernel_size, kernel_size)              
+ 
     if bias is not None and ctx.needs_input_grad[2]:
       # compute the gradients w.r.t. bias (if any)
       grad_bias = grad_output.sum((0,2,3))
-
+  
     return grad_input, grad_weight, grad_bias, None, None
 
 custom_conv2d = CustomConv2DFunction.apply
@@ -126,7 +153,7 @@ class CustomConv2d(Module):
 
     # register weight and bias as parameters
     self.weight = nn.Parameter(torch.Tensor(
-      out_channels, in_channels, kernel_size, kernel_size))
+        out_channels, in_channels, kernel_size, kernel_size))
     if bias:
       self.bias = nn.Parameter(torch.Tensor(out_channels))
     else:
@@ -208,7 +235,7 @@ default_model = SimpleNet
 #################################################################################
 # Part III: Adversarial samples and Attention
 #################################################################################
-class PGDAttack(object):
+'''class PGDAttack(object):
   def __init__(self, loss_fn, num_steps=10, step_size=0.01, epsilon=0.1):
     """
     Attack a network by Project Gradient Descent. The attacker performs
@@ -321,3 +348,4 @@ def vis_grad_attention(input, vis_alpha=2.0, n_rows=10, vis_output=None):
   return output
 
 default_visfunction = vis_grad_attention
+'''
