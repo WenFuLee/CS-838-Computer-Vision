@@ -326,19 +326,12 @@ class GradAttention(object):
     #################################################################################
     net = model(input)
     pred = torch.max(net.data, 1)[1]
-    print(net.size())
-    label = torch.FloatTensor(net.size()).fill_(0)
-    label[pred] = 1
-    loss = self.loss_fn(net, label)
+    print(pred.size())
+    loss = self.loss_fn(net, pred.cuda())
     loss.backward()
-    middle = input.grad.numpy()
-    sz = middle.size()
-    output = np.zeros([sz[0], 1, sz[2], sz[3]])
-    for i in range(0, sz(0)):
-      for k in range(sz(2)):
-        for m in range(sz(3)):
-          for j in range(sz(1)):
-            output[i][1][k][m] = max(math.fabs(middle[i][j][k][m]), output[i][1][k][m])
+    middle = input.grad
+    output = torch.max(torch.abs(middle), 1)
+    print(output)
     return output
 
 default_attention = GradAttention
