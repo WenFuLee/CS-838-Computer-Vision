@@ -326,12 +326,10 @@ class GradAttention(object):
     #################################################################################
     net = model(input)
     pred = torch.max(net.data, 1)[1]
-    print(pred.size())
     loss = self.loss_fn(net, pred.cuda())
     loss.backward()
     middle = input.grad
-    output = torch.max(torch.abs(middle), 1)
-    print(output)
+    output = torch.max(torch.abs(middle), 1, True)[0]
     return output
 
 default_attention = GradAttention
