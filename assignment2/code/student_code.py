@@ -235,7 +235,7 @@ default_model = SimpleNet
 #################################################################################
 # Part III: Adversarial samples and Attention
 #################################################################################
-'''class PGDAttack(object):
+class PGDAttack(object):
   def __init__(self, loss_fn, num_steps=10, step_size=0.01, epsilon=0.1):
     """
     Attack a network by Project Gradient Descent. The attacker performs
@@ -277,7 +277,15 @@ default_model = SimpleNet
       #################################################################################
       # Fill in the code here
       #################################################################################
-
+      net = model(output)
+      pred = torch.min(net.data, 1)[1]
+      print(net.size())
+      label = torch.FloatTensor(net.size()).fill_(0)
+      label[pred] = 1
+      loss = self.loss_fn(net, label)
+      loss.backward()
+      inputgrad = input.grad
+      output = output + self.epsilon * torch.sign(inputgrad)
     return output
 
 default_attack = PGDAttack
@@ -316,7 +324,21 @@ class GradAttention(object):
     #################################################################################
     # Fill in the code here
     #################################################################################
-
+    net = model(input)
+    pred = torch.max(net.data, 1)[1]
+    print(net.size())
+    label = torch.FloatTensor(net.size()).fill_(0)
+    label[pred] = 1
+    loss = self.loss_fn(net, label)
+    loss.backward()
+    middle = input.grad.numpy()
+    sz = middle.size()
+    output = np.zeros([sz[0], 1, sz[2], sz[3]])
+    for i in range(0, sz(0)):
+      for k in range(sz(2)):
+        for m in range(sz(3)):
+          for j in range(sz(1)):
+            output[i][1][k][m] = max(math.fabs(middle[i][j][k][m]), output[i][1][k][m])
     return output
 
 default_attention = GradAttention
@@ -348,4 +370,3 @@ def vis_grad_attention(input, vis_alpha=2.0, n_rows=10, vis_output=None):
   return output
 
 default_visfunction = vis_grad_attention
-'''
