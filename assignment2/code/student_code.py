@@ -229,8 +229,120 @@ class SimpleNet(nn.Module):
     x = self.fc(x)
     return x
 
+class CustomNet(nn.Module):
+  # a simple CNN for image classifcation
+  def __init__(self, conv_op=nn.Conv2d, num_classes=100):
+    super(SimpleNet, self).__init__()
+    # you can start from here and create a better model
+    self.conv_block1 = nn.Sequential(
+      # conv1 block: 3x conv 3x3
+      conv_op(3, 64, kernel_size=7, stride=2, padding=3),
+      nn.BatchNorm2d(64),
+      nn.ReLU(inplace=True),
+    )
+    
+    # max pooling 1/2
+    self.maxpool = nn.MaxPool2d(kernel_size=3, stride=2, padding=1)
+    
+    self.conv_relu = nn.ReLU(inplace=True)
+    
+    self.residual_block1 = nn.Sequential(
+      # ResidualBlock
+      conv_op(64, 64, kernel_size=1, stride=1, padding=0),
+      nn.BatchNorm2d(64),
+      nn.ReLU(inplace=True),
+      conv_op(64, 64, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(64),
+    )
+    
+    self.residual_block2 = nn.Sequential(
+      # ResidualBlock
+      conv_op(64, 64, kernel_size=1, stride=1, padding=0),
+      nn.BatchNorm2d(64),
+      nn.ReLU(inplace=True),
+      conv_op(64, 256, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(256),
+    )
+
+    self.residual_block3 = nn.Sequential(
+      # ResidualBlock
+      conv_op(256, 64, kernel_size=1, stride=1, padding=0),
+      nn.BatchNorm2d(64),
+      nn.ReLU(inplace=True),
+      conv_op(64, 64, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(64),
+    )
+ 
+    '''self.residual_block4 = nn.Sequential(
+      # ResidualBlock
+      conv_op(64, 64, kernel_size=1, stride=1, padding=0),
+      nn.BatchNorm2d(64),
+      nn.ReLU(inplace=True),
+      conv_op(64, 256, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(256),
+    )'''
+    
+    # conv4 block: conv 3x3
+    self.conv_block2 = nn.Sequential(
+      conv_op(256, 512, kernel_size=3, stride=1, padding=1),
+      nn.BatchNorm2d(512),
+      nn.ReLU(inplace=True),
+    )
+            
+    # global avg pooling + FC
+    self.avgpool =  nn.AdaptiveAvgPool2d((1, 1))
+    self.fc = nn.Linear(512, num_classes)
+
+  def forward(self, x):
+    # you can implement adversarial training here
+    # if self.training:
+    #   # generate adversarial sample based on x
+    # Conv Block
+    x = self.conv_block1(x)    
+
+    # Max pool
+    x = self.maxpool(x)    
+
+    # Residual Block
+    residual = x
+    x = self.residual_block1(x)
+    x += residual
+    x = self.conv_relu(x)
+    
+    # Residual Block
+    residual = x
+    x = self.residual_block2(x)
+    x += residual
+    x = self.conv_relu(x)
+
+    # Max pool    
+    x = self.maxpool(x)
+        
+    # Residual Block
+    residual = x
+    x = self.residual_block3(x)
+    x += residual
+    x = self.conv_relu(x)   
+    
+    # Residual Block
+    residual = x
+    x = self.residual_block2(x)
+    x += residual
+    x = self.conv_relu(x)       
+
+    # Max pool
+    x = self.maxpool(x)    
+
+    # Conv Block    
+    x = self.conv_block2(x)
+    
+    x = self.avgpool(x)
+    x = x.view(x.size(0), -1)
+    x = self.fc(x)
+    return x
+
 # change this to your model!
-default_model = SimpleNet
+default_model = CustomNet
 
 #################################################################################
 # Part III: Adversarial samples and Attention
