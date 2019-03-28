@@ -264,6 +264,11 @@ class CustomNet(nn.Module):
       nn.BatchNorm2d(256),
     )
 
+    self.downsample = nn.Sequential(
+      conv_op(64, 256, kernel_size=3, stride=stride, padding=1, bias=False),
+      nn.BatchNorm2d(256)
+    )
+    
     self.residual_block3 = nn.Sequential(
       # ResidualBlock
       conv_op(256, 64, kernel_size=1, stride=1, padding=0),
@@ -273,6 +278,11 @@ class CustomNet(nn.Module):
       nn.BatchNorm2d(64),
     )
  
+    self.downsample2 = nn.Sequential(
+      conv_op(256, 64, kernel_size=3, stride=stride, padding=1, bias=False),
+      nn.BatchNorm2d(64)
+    )
+    
     '''self.residual_block4 = nn.Sequential(
       # ResidualBlock
       conv_op(64, 64, kernel_size=1, stride=1, padding=0),
@@ -311,8 +321,9 @@ class CustomNet(nn.Module):
     
     # Residual Block
     residual = x
-    x = self.residual_block2(x)
-    x += residual
+    x = self.residual_block2(x)    
+    residual_down = self.downsample(residual)    
+    x += residual_down
     x = self.conv_relu(x)
 
     # Max pool    
@@ -321,13 +332,16 @@ class CustomNet(nn.Module):
     # Residual Block
     residual = x
     x = self.residual_block3(x)
+    residual_down = self.downsample2(residual)    
+    x += residual_down
     x += residual
     x = self.conv_relu(x)   
     
     # Residual Block
     residual = x
     x = self.residual_block2(x)
-    x += residual
+    residual_down = self.downsample(residual)    
+    x += residual_down
     x = self.conv_relu(x)       
 
     # Max pool
