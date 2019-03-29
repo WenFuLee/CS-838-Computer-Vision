@@ -232,7 +232,7 @@ class SimpleNet(nn.Module):
 class CustomNet(nn.Module):
   # a simple CNN for image classifcation
   def __init__(self, conv_op=nn.Conv2d, num_classes=100):
-    super(SimpleNet, self).__init__()
+    super(CustomNet, self).__init__()
     # you can start from here and create a better model
     self.conv_block1 = nn.Sequential(
       # conv1 block: 3x conv 3x3
@@ -265,7 +265,7 @@ class CustomNet(nn.Module):
     )
 
     self.downsample = nn.Sequential(
-      conv_op(64, 256, kernel_size=3, stride=stride, padding=1, bias=False),
+      conv_op(64, 256, kernel_size=3, stride=1, padding=1, bias=False),
       nn.BatchNorm2d(256)
     )
     
@@ -279,7 +279,7 @@ class CustomNet(nn.Module):
     )
  
     self.downsample2 = nn.Sequential(
-      conv_op(256, 64, kernel_size=3, stride=stride, padding=1, bias=False),
+      conv_op(256, 64, kernel_size=3, stride=1, padding=1, bias=False),
       nn.BatchNorm2d(64)
     )
     
@@ -334,7 +334,6 @@ class CustomNet(nn.Module):
     x = self.residual_block3(x)
     residual_down = self.downsample2(residual)    
     x += residual_down
-    x += residual
     x = self.conv_relu(x)   
     
     # Residual Block
