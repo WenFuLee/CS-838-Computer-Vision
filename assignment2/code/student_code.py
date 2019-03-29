@@ -355,7 +355,7 @@ class CustomNet(nn.Module):
     return x
 
 # change this to your model!
-default_model = CustomNet
+default_model = SimpleNet
 
 #################################################################################
 # Part III: Adversarial samples and Attention
