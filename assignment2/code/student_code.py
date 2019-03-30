@@ -409,7 +409,7 @@ class PGDAttack(object):
       loss.backward()
       inputgrad = output.grad
       output = torch.min(output + self.step_size * torch.sign(inputgrad), input + self.epsilon)
-      output = torch.Tensor(output.data, requires_grad=True)
+      output = torch.tensor(output.data, requires_grad=True)
     return output
 
 default_attack = PGDAttack
