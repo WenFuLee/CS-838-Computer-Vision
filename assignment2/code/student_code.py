@@ -632,6 +632,9 @@ class PGDAttack(object):
     input.requires_grad = False
 
     output.requires_grad = True
+    inputori = input.clone()
+    net = model(input)
+    pred = torch.min(net, 1)[1]
     # loop over the number of steps
     for _ in range(self.num_steps):
       #################################################################################
@@ -641,8 +644,10 @@ class PGDAttack(object):
       pred = torch.min(net.data, 1)[1]
       loss = self.loss_fn(net, pred)
       loss.backward()
-      inputgrad = output.grad
-      output = torch.min(output + self.step_size * torch.sign(inputgrad), input + self.epsilon)
+      temp = output + self.step_size * torch.sign(output.grad) - inputori
+      temp = torch.clamp(temp, min = -self.epsilon, max=self.epsilon)
+      input = temp + inputori
+      output = input.clone()
       output = torch.tensor(output.data, requires_grad=True)
     return output
 
