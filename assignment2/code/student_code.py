@@ -484,28 +484,28 @@ class GoogLeNet(nn.Module):
     def __init__(self, num_classes=100):
         super(GoogLeNet, self).__init__()
         self.pre_layers = nn.Sequential(
-            nn.Conv2d(3, 192, kernel_size=3, padding=1),
-            nn.BatchNorm2d(192),
+            nn.Conv2d(3, 12, kernel_size=3, padding=1),
+            nn.BatchNorm2d(12),
             nn.ReLU(True),
         )
 
-        self.a3 = Inception(192,  64,  96, 128, 16, 32, 32)
-        self.b3 = Inception(256, 128, 128, 192, 32, 96, 64)
+        self.a3 = Inception(12, 4, 6, 8, 1, 2, 2)
+        self.b3 = Inception(16, 8, 8, 12, 2, 6, 4)
 
         self.maxpool = nn.MaxPool2d(3, stride=2, padding=1)
 
-        self.a4 = Inception(480, 192,  96, 208, 16,  48,  64)
-        self.b4 = Inception(512, 160, 112, 224, 24,  64,  64)
-        self.c4 = Inception(512, 128, 128, 256, 24,  64,  64)
-        self.d4 = Inception(512, 112, 144, 288, 32,  64,  64)
-        self.e4 = Inception(528, 256, 160, 320, 32, 128, 128)
+        self.a4 = Inception(30, 12, 6, 13, 1, 3, 4)
+        self.b4 = Inception(32, 10, 7, 14, 2, 4, 4)
+        self.c4 = Inception(32, 8, 8, 16, 2, 4, 4)
+        self.d4 = Inception(32, 7, 9, 18, 2, 4, 4)
+        self.e4 = Inception(33, 16, 10, 20, 2, 8, 8)
 
-        self.a5 = Inception(832, 256, 160, 320, 32, 128, 128)
-        self.b5 = Inception(832, 384, 192, 384, 48, 128, 128)
+        self.a5 = Inception(52, 16, 10, 20, 2, 8, 8)
+        self.b5 = Inception(52, 24, 12, 24, 3, 8, 8)
 
         #self.avgpool = nn.AvgPool2d(8, stride=1)
         self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
-        self.linear = nn.Linear(1024, num_classes)
+        self.linear = nn.Linear(64, num_classes)
 
     def forward(self, x):
         out = self.pre_layers(x)
