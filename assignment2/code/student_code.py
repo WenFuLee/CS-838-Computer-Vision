@@ -358,6 +358,64 @@ class CustomNet(nn.Module):
 
 ############################# End of CustomNet ##################################
 
+############################# CustomNet2 ########################################
+class CustomNet2(nn.Module):
+  # a simple CNN for image classifcation
+  def __init__(self, conv_op=nn.Conv2d, num_classes=100):
+    super(CustomNet, self).__init__()
+    self.features = nn.Sequential(
+      # conv1 block: 3x conv 3x3
+      conv_op(3, 64, kernel_size=7, stride=2, padding=3),
+      # max pooling 1/2
+      nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+      nn.ReLU(inplace=True),
+      nn.BatchNorm2d(64),
+
+
+      # conv2 block: simple bottleneck
+      conv_op(64, 64, kernel_size=1, stride=1, padding=0),
+      nn.ReLU(inplace=True),
+      conv_op(64, 64, kernel_size=3, stride=1, padding=1),
+      nn.ReLU(inplace=True),
+      conv_op(64, 256, kernel_size=1, stride=1, padding=0),
+      # max pooling 1/2
+      nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+      nn.ReLU(inplace=True),
+      nn.BatchNorm2d(256),
+
+
+      # conv3 block: simple bottleneck
+      conv_op(256, 64, kernel_size=1, stride=1, padding=0),
+      nn.ReLU(inplace=True),
+      conv_op(64, 64, kernel_size=3, stride=1, padding=1),
+      nn.ReLU(inplace=True),
+      conv_op(64, 256, kernel_size=1, stride=1, padding=0),
+      # max pooling 1/2
+      nn.MaxPool2d(kernel_size=3, stride=2, padding=1),
+      nn.ReLU(inplace=True),
+      nn.BatchNorm2d(256),
+
+
+      # conv4 block: conv 3x3
+      conv_op(256, 512, kernel_size=3, stride=1, padding=1),
+      nn.ReLU(inplace=True),
+      nn.BatchNorm2d(512)
+    )
+    # global avg pooling + FC
+    self.avgpool =  nn.AdaptiveAvgPool2d((1, 1))
+    self.fc = nn.Linear(512, num_classes)
+    self.dropout = nn.dropout(0.5)
+
+
+  def forward(self, x):
+    x = self.features(x)
+    x = self.dropout(x)
+    x = self.avgpool(x)
+    x = x.view(x.size(0), -1)
+    x = self.fc(x)
+    return x
+############################# End of CustomNet2 #################################
+
 ############################# ResNet ############################################
 
 # 3x3 convolution
