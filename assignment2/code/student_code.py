@@ -646,9 +646,7 @@ class PGDAttack(object):
       temp = input + self.step_size * torch.sign(output.grad) - inputori
       temp = torch.clamp(temp, min = -self.epsilon, max=self.epsilon)
       input = temp + inputori
-      input = torch.clamp(input, 0, 1)
       output = input.clone()
-      #output.requires_grad = True
       output = torch.tensor(output.data, requires_grad=True)
     return output
 
