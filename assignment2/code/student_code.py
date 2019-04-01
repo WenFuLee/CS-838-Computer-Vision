@@ -362,7 +362,7 @@ class CustomNet(nn.Module):
 class CustomNet2(nn.Module):
   # a simple CNN for image classifcation
   def __init__(self, conv_op=nn.Conv2d, num_classes=100):
-    super(CustomNet, self).__init__()
+    super(CustomNet2, self).__init__()
     self.features = nn.Sequential(
       # conv1 block: 3x conv 3x3
       conv_op(3, 64, kernel_size=7, stride=2, padding=3),
@@ -404,7 +404,7 @@ class CustomNet2(nn.Module):
     # global avg pooling + FC
     self.avgpool =  nn.AdaptiveAvgPool2d((1, 1))
     self.fc = nn.Linear(512, num_classes)
-    self.dropout = nn.dropout(0.5)
+    self.dropout = nn.Dropout(0.5)
 
 
   def forward(self, x):
@@ -586,7 +586,8 @@ class GoogLeNet(nn.Module):
 ############################# End of GoogLeNet ############################################
 
 # change this to your model!
-default_model = SimpleNet
+#default_model = SimpleNet
+default_model = CustomNet2
 #default_model = CustomNet
 #default_model = ResNet
 #default_model = GoogLeNet
