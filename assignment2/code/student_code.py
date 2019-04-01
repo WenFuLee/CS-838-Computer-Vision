@@ -644,7 +644,7 @@ class PGDAttack(object):
       net = model(output)
       loss = self.loss_fn(net, pred)
       loss.backward()
-      temp = input + self.step_size * torch.sign(output.grad) - inputori
+      temp = input - self.step_size * torch.sign(output.grad) - inputori
       temp = torch.clamp(temp, min = -self.epsilon, max=self.epsilon)
       input = temp + inputori
       output = input.clone()
