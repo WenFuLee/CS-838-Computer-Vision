@@ -586,8 +586,8 @@ class GoogLeNet(nn.Module):
 ############################# End of GoogLeNet ############################################
 
 # change this to your model!
-#default_model = SimpleNet
-default_model = CustomNet2
+default_model = SimpleNet
+#default_model = CustomNet2
 #default_model = CustomNet
 #default_model = ResNet
 #default_model = GoogLeNet
