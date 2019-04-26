@@ -27,6 +27,7 @@ import torch.utils.data
 import torch.backends.cudnn as cudnn
 import cv2
 from PIL import Image
+import copy
 
 sys.path.insert(0, os.path.dirname(__file__))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
@@ -46,6 +47,9 @@ from upsnet.bbox.bbox_transform import bbox_transform, clip_boxes, expand_boxes
 from lib.utils.callback import Speedometer
 from lib.utils.data_parallel import DataParallel
 from pycocotools.mask import encode as mask_encode
+
+#sys.path.append('/lib/nn/optimizer.py') 
+#from lib.nn.optimizer import SGD
 
 cv2.ocl.setUseOpenCL(False)
 
@@ -185,17 +189,23 @@ class PGDAttack(object):
       output: (torch tensor) an adversarial sample of the given network
     """
     # clone the input tensor and disable the gradients
-    #output = input[0]['data'].clone()
-    #input[0]['data'].requires_grad = False
-    input[0]['data'].requires_grad = True
-    input[0]['data_4x'].requires_grad = True
+    #output = input.clone()
+    output = copy.deepcopy(input)
+    
+    input[0]['data'].requires_grad = False
+    output[0]['data'].requires_grad = True
+    #input[0]['data'].requires_grad_(True)
+    input[0]['data'] = input[0]['data'].cuda()
+    #input[0]['data_4x'].requires_grad = True
+
+    #print("input[0]['data'] = {}".format(input[0]['data'])) #Prints '3' which is dz/dx 
 
     #output.requires_grad = True
     inputori = input[0]['data'].clone()
 
 
     #net = model(inputori) # [To Check] what's the output format? the same as hw2?
-    net = model(input) # [To Check] what's the output format? the same as hw2?
+    #net = model(input) # [To Check] what's the output format? the same as hw2?
 
     #print('\n\n\n\n\nnet = {}\n\n\n\n\n'.format(net))
     '''print('\n\n\n\n\n')
@@ -203,7 +213,7 @@ class PGDAttack(object):
         print('net_key = {}'.format(k))
         if k == 'cls_probs':
             print('cls_probs = {}'.format(v))
-    print('\n\n\n\n\n')'''
+    print('\n\n\n\n\n')
 
     print('\n\n\n\n\n')
     for k, v in net.items():
@@ -213,23 +223,43 @@ class PGDAttack(object):
         else:
             print('net_val.size = {}\n\n\n\n'.format(len(v)))
 
-    print('\n\n\n\n\n')
-
+    print('\n\n\n\n\n')'''
 
 
     #pred = torch.min(net.data, 1)[1]
 
     #[To do] merge pred to input
 
+    # create optimizer
+    #params_lr = model.module.get_params_lr()
+    # we use custom optimizer and pass lr=1 to support different lr for different weights
+    #optimizer = SGD(params_lr, lr=1, momentum=config.train.momentum, weight_decay=config.train.wd)
+    
+
     # loop over the number of steps
-    for _ in range(self.num_steps):
+    for i in range(self.num_steps):
       #################################################################################
       # Fill in the code here
       #################################################################################
       #net = model(output, pred)
       #net = model(input, pred)
-      net = model(input)
+      #print("{}".format(i))
 
+      #optimizer.zero_grad()
+      #input[0]['data'].requires_grad_(True)
+      net = model(output)
+
+      '''
+      test = torch.sum(input[0]['data'])
+      test.backward() #Computes the gradient 
+      print("input[0]['data'].grad = {}".format(input[0]['data'].grad)) #Prints '3' which is dz/dx 
+
+      x = torch.tensor(1.0, requires_grad = True)
+      z = x * 3
+      z.backward() #Computes the gradient 
+      print("x.grad = {}".format(x.grad)) #Prints '3' which is dz/dx 
+      print("x.grad.data = {}".format(x.grad.data)) #Prints '3' which is dz/dx 
+      '''
 
 
       #loss = self.loss_fn(net, pred)
@@ -248,28 +278,150 @@ class PGDAttack(object):
           loss = loss + net['panoptic_loss'].mean() * config.train.panoptic_loss_weight
       loss.backward()
 
+      '''
+      print("net['rpn_cls_loss'].mean() = {}".format(net['rpn_cls_loss'].mean()))
+      print("net['rpn_cls_loss'].mean().dtype = {}".format(net['rpn_cls_loss'].mean().dtype))
+      
+
+      print("model = {}".format(model))
+
+      print("model.module.resnet_backbone.conv1.conv1 = {}".format(model.module.resnet_backbone.conv1.conv1))
+      print("model.module.resnet_backbone.conv1.conv1.weight = {}".format(model.module.resnet_backbone.conv1.conv1.weight))
+      print("model.module.resnet_backbone.conv1.conv1.weight.grad = {}".format(model.module.resnet_backbone.conv1.conv1.weight.grad))
+      print("model.module.resnet_backbone.conv1.conv1.weight.requires_grad = {}".format(model.module.resnet_backbone.conv1.conv1.weight.requires_grad))
+
+      print("model.module.fpn.fpn_p5_1x1 = {}".format(model.module.fpn.fpn_p5_1x1))
+      print("model.module.fpn.fpn_p5_1x1.weight = {}".format(model.module.fpn.fpn_p5_1x1.weight))
+      print("model.module.fpn.fpn_p5_1x1.weight.grad = {}".format(model.module.fpn.fpn_p5_1x1.weight.grad))
+
+      print("model.module.fpn.fpn_p2 = {}".format(model.module.fpn.fpn_p2))
+      print("model.module.fpn.fpn_p2.weight = {}".format(model.module.fpn.fpn_p2.weight))
+      print("model.module.fpn.fpn_p2.weight.grad = {}".format(model.module.fpn.fpn_p2.weight.grad))
+
+      print("model.module.rpn.conv_proposal = {}".format(model.module.rpn.conv_proposal))
+      print("model.module.rpn.conv_proposal[0].weight = {}".format(model.module.rpn.conv_proposal[0].weight))
+      print("model.module.rpn.conv_proposal[0].weight.grad = {}".format(model.module.rpn.conv_proposal[0].weight.grad))
 
 
-      print("input[0]['data'].grad = {}".format(input[0]['data'].grad))
-      temp = input[0]['data'] - self.step_size * torch.sign(input[0]['data'].grad) - inputori
+      print("model.module.num_classes = {}".format(model.module.num_classes))
+      print("model.module.fpn_p2 = {}".format(model.module.fpn_p2))
+      print("model.module.fpn_p2.requires_grad = {}".format(model.module.fpn_p2.requires_grad))      
+      print("model.module.fpn_p2.grad = {}".format(model.module.fpn_p2.grad))
+      
+
+      print("model.module.seg_logits = {}".format(model.module.seg_logits))
+      print("model.module.seg_logits.requires_grad = {}".format(model.module.seg_logits.requires_grad))      
+      print("model.module.seg_logits.grad = {}".format(model.module.seg_logits.grad))
+      
+      print("model.module.panoptic_loss_val = {}".format(model.module.panoptic_loss_val))
+      print("model.module.panoptic_loss_val.requires_grad = {}".format(model.module.panoptic_loss_val.requires_grad))      
+      print("model.module.panoptic_loss_val.grad = {}".format(model.module.panoptic_loss_val.grad))
+
+      print("output[0]['data'].requires_grad = {}".format(output[0]['data'].requires_grad))
+      print("output[0]['data'].is_leaf = {}".format(output[0]['data'].is_leaf))
+      print("output[0]['data'].grad = {}".format(output[0]['data'].grad))'''
+
+      temp = input[0]['data'] + self.step_size * torch.sign(output[0]['data'].grad) - inputori
       temp = torch.clamp(temp, min = -self.epsilon, max=self.epsilon)
       input[0]['data'] = temp + inputori
       #output = input.clone()
-      #output = torch.tensor(output.data, requires_grad=True)
+      output = copy.deepcopy(input)
+      output[0]['data'] = torch.tensor(output[0]['data'].data, requires_grad=True)
 
-
+    perturb = output[0]['data'] - inputori
 
 
     #input[0]['data'] = output
-    #return output
-    return input
+    return output, perturb
+    #return input
 
 default_attack = PGDAttack
 
-def upsnet_test():
+def saveAttackImg(inTensor, imgName, save_path=None, mode=0):
+    """
+    visualize all detections in one image
+    :param im_array: [b=1 c h w] in rgb
+    :param detections: [ numpy.ndarray([[x1 y1 x2 y2 score]]) for j in classes ]
+    :param class_names: list of names in imdb
+    :param scale: visualize the scaled image
+    :return:
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+    from matplotlib.patches import Polygon
+    import random
+    import cv2
+    #from lib.utils.colormap import colormap
 
-    pprint.pprint(config)
-    logger.info('test config:{}\n'.format(pprint.pformat(config)))
+    if save_path is not None:
+        os.makedirs(save_path, exist_ok=True)
+
+    #color_list = colormap(rgb=True) / 255
+    mask_color_id = 0
+
+    #im = np.array(inTensor)
+    imBefore = inTensor.cpu().detach().numpy()
+    
+    im = np.empty([imBefore.shape[2], imBefore.shape[3], 3])
+    #im = np.zeros((imBefore.shape[2], imBefore.shape[3], 3))
+    #im = np.ones((imBefore.shape[2], imBefore.shape[3], 3))
+    '''print("imBefore.shape[0] = {}".format(imBefore.shape[0]))
+    print("imBefore.shape[1] = {}".format(imBefore.shape[1]))
+    print("imBefore.shape[2] = {}".format(imBefore.shape[2]))
+    print("imBefore.shape[3] = {}".format(imBefore.shape[3]))
+    print("im.shape = {}".format(im.shape))
+    print("im[0:, 0:, 0].shape = {}".format(im[0:, 0:, 0].shape))
+    print("imBefore[0, 0, 0:, 0:].shape = {}".format(imBefore[0, 0, 0:, 0:].shape))'''
+    
+    #im[0:, 0:, 0]: red
+    #im[0:, 0:, 1]: green
+    #im[0:, 0:, 2]: blue
+    #im[0:, 0:, 0] = im[0:, 0:, 0] + 1 
+
+    #imBefore[0, 0, 0:, 0:]: blue
+
+    im[0:, 0:, 0] = imBefore[0, 2, 0:, 0:]
+    im[0:, 0:, 1] = imBefore[0, 1, 0:, 0:]
+    im[0:, 0:, 2] = imBefore[0, 0, 0:, 0:]
+
+    if mode == 0:
+        im[0:, 0:, 0] = (im[0:, 0:, 0] - im[0:, 0:, 0].min()) / (im[0:, 0:, 0].max() - im[0:, 0:, 0].min())
+        im[0:, 0:, 1] = (im[0:, 0:, 1] - im[0:, 0:, 1].min()) / (im[0:, 0:, 1].max() - im[0:, 0:, 1].min())
+        im[0:, 0:, 2] = (im[0:, 0:, 2] - im[0:, 0:, 2].min()) / (im[0:, 0:, 2].max() - im[0:, 0:, 2].min())
+    else:
+        im[0:, 0:, 0] = np.absolute(im[0:, 0:, 0]) / 255.0
+        im[0:, 0:, 1] = np.absolute(im[0:, 0:, 1]) / 255.0
+        im[0:, 0:, 2] = np.absolute(im[0:, 0:, 2]) / 255.0
+
+    '''print("im = {}".format(im))
+    print("im.shape = {}".format(im.shape))
+    print("im.max() = {}".format(im.max()))
+    print("im.min() = {}".format(im.min()))'''
+    #print("im.size() = {}".format(im.size()))
+    #print("im.shape() = {}".format(im.shape()))
+
+
+    fig = plt.figure(frameon=False)
+
+    fig.set_size_inches(im.shape[1] / 200, im.shape[0] / 200)
+    ax = plt.Axes(fig, [0., 0., 1., 1.])
+    ax.axis('off')
+    fig.add_axes(ax)
+    ax.imshow(im)
+    
+    if save_path is None:
+        plt.show()
+    else:
+        #fig.savefig(os.path.join(save_path, '{}.png'.format(self.roidb[i]['image'].split('/')[-1])), dpi=200)
+        fig.savefig(os.path.join(save_path, '{}'.format(imgName.split('/')[-1])), dpi=200)
+        #fig.savefig(os.path.join(save_path, '{}.png'.format(1)), dpi=200)
+    plt.close('all')
+
+def upsnet_test(num_steps, step_size, epsilon):
+
+    #pprint.pprint(config)
+    #logger.info('test config:{}\n'.format(pprint.pformat(config)))
 
     # create models
     gpus = [int(_) for _ in config.gpus.split(',')]
@@ -286,9 +438,7 @@ def upsnet_test():
     #val_dataset = eval(config.dataset.dataset)(image_sets=config.dataset.test_image_set.split('+'), flip=False, result_path=final_output_path, phase='val')
     #test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=config.train.batch_size, shuffle=config.train.shuffle, num_workers=num_gpus * 4 if not config.debug_mode else num_gpus * 4, drop_last=False, collate_fn=test_dataset.collate)
     #val_loader = torch.utils.data.DataLoader(val_dataset, batch_size=config.train.batch_size, shuffle=False, num_workers=num_gpus * 4 if not config.debug_mode else num_gpus * 4, drop_last=False, collate_fn=val_dataset.collate)
-
-
-
+    
     if args.eval_only:
         results = pickle.load(open(os.path.join(final_output_path, 'results', 'results_list.pkl'), 'rb'))
         if config.test.vis_mask:
@@ -311,8 +461,8 @@ def upsnet_test():
     test_model.load_state_dict(torch.load(os.path.join(os.path.join(os.path.join(config.output_path, os.path.basename(args.cfg).split('.')[0]),
                                '_'.join(config.dataset.image_set.split('+')), config.model_prefix+str(curr_iter)+'.pth'))), resume=True)
 
-    print(os.path.join(os.path.join(os.path.join(config.output_path, os.path.basename(args.cfg).split('.')[0]),
-                                       '_'.join(config.dataset.image_set.split('+')), config.model_prefix+str(curr_iter)+'.pth')))
+    #print(os.path.join(os.path.join(os.path.join(config.output_path, os.path.basename(args.cfg).split('.')[0]),
+    #                                   '_'.join(config.dataset.image_set.split('+')), config.model_prefix+str(curr_iter)+'.pth')))
 
     #for p in test_model.parameters():
     #    p.requires_grad = False
@@ -339,16 +489,24 @@ def upsnet_test():
     data_timer = Timer()
     net_timer = Timer()
     post_timer = Timer()
-    attacker=default_attack()
+
+    file_folder = "{}_{}_{}".format(num_steps, step_size, epsilon)
+    attacker=default_attack(num_steps=num_steps, step_size=step_size, epsilon=epsilon)
 
     while i_iter < len(test_loader):
         data_timer.tic()
         batch = []
         labels = []
+
+        #print("test_dataset = {}".format(test_dataset))
+        #print("test_dataset.roidb[i]['image'] = {}".format(test_dataset.roidb[i_iter]['image']))
+
         for gpu_id in gpus:
             try:
                 data, label, _ = test_iter.next()
+                #print("_ = {}".format(_))
 
+                '''
                 print('\n\n\n\n\n')
                 #print('label = {}\n\n\n\n\n\n\n\n\n'.format(label))
                 for k, v in label.items():
@@ -376,6 +534,7 @@ def upsnet_test():
                     print('data_val = {}\n\n\n\n'.format(v))
                 print('\n\n\n\n\n')
                 print('=================================================================')
+                '''
 
                 if label is not None:
                     data['roidb'] = label['roidb']
@@ -425,11 +584,18 @@ def upsnet_test():
         
         # generate adversarial samples
         if attacker is not None:
-            print("attacking: {}".format(i_iter))
+            #print("attacking: {}".format(i_iter))
             # generate adversarial samples
-            adv_input = attacker.perturb(test_model, *batch)
+            #with torch.set_grad_enabled(True):
+            adv_input, perturb_out = attacker.perturb(test_model, *batch)
+
+            batch = []
+            batch.append((adv_input[0], None))
+            saveAttackImg(adv_input[0]['data'], test_dataset.roidb[i_iter-1]['image'], os.path.join(final_output_path, 'results', 'attack', file_folder), mode=0)
+            saveAttackImg(perturb_out, test_dataset.roidb[i_iter-1]['image'], os.path.join(final_output_path, 'results', 'perturb', file_folder), mode=1)
+
             # forward the model
-            output = test_model(adv_input)
+            output = test_model(*batch)
         else:
             # forward the model
             output = test_model(*batch)
@@ -495,20 +661,29 @@ def upsnet_test():
     if config.test.vis_mask:
         test_dataset.vis_all_mask(all_boxes, all_masks, os.path.join(final_output_path, 'results', 'vis'))
     else:
-        ''' 
+         
         test_dataset.evaluate_boxes(all_boxes, os.path.join(final_output_path, 'results'))
         if config.network.has_mask_head:
             test_dataset.evaluate_masks(all_boxes, all_masks, os.path.join(final_output_path, 'results'))
-        '''
+        
         if config.network.has_panoptic_head:
             logging.info('unified pano result:')
-            test_dataset.evaluate_panoptic(test_dataset.get_unified_pan_result(all_ssegs, all_panos, all_pano_cls_inds, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_unified'))
-        '''
+            test_dataset.evaluate_panoptic(test_dataset.get_unified_pan_result(all_ssegs, all_panos, all_pano_cls_inds, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_unified', file_folder))
+        
         if config.network.has_fcn_head:
             test_dataset.evaluate_ssegs(all_ssegs, os.path.join(final_output_path, 'results', 'ssegs'))
             # logging.info('combined pano result:')
             # test_dataset.evaluate_panoptic(test_dataset.get_combined_pan_result(all_ssegs, all_boxes, all_masks, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_combined'))
-        '''
+        
 
 if __name__ == "__main__":
-    upsnet_test()
+    step_size=1
+    epsilon=[0.25, 1, 4, 16]
+    print('\n\n\n\n')
+    import math
+    for i in range(len(epsilon)):
+        num_steps = min(epsilon[i]+4, math.ceil(epsilon[i]*1.25))
+        file_folder = "{}_{}_{}".format(num_steps, step_size, epsilon[i])
+        print('<<file_folder = {}>>'.format(file_folder))
+        upsnet_test(num_steps=num_steps, step_size=step_size, epsilon=epsilon[i])
+        print('\n\n\n\n')
