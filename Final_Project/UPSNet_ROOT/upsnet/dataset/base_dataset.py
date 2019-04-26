@@ -326,13 +326,13 @@ class BaseDataset(torch.utils.data.Dataset):
         gt_pans, gt_json, categories, color_gererator = get_gt()
         
         pred_pans, pred_json = get_pred(pred_pans_2ch, color_gererator)
-        '''
         save_image(pred_pans_2ch, os.path.join(output_dir, 'pan_2ch'), gt_json)
         save_image(pred_pans, os.path.join(output_dir, 'pan'), gt_json)
         json.dump(gt_json, open(os.path.join(output_dir, 'gt.json'), 'w'))
         json.dump(pred_json, open(os.path.join(output_dir, 'pred.json'), 'w'))
-        '''
-        save_image(pred_pans, os.path.join(output_dir, 'pan_attack'), gt_json)
+        
+        #save_image(pred_pans, os.path.join(output_dir, 'pan_attack'), gt_json)
+        
         results = pq_compute(gt_json, pred_json, gt_pans, pred_pans, categories)
 
         return results
