@@ -71,11 +71,11 @@ class Bottleneck(nn.Module):
             self.bn2.eval()
             self.bn3.eval()
             for i in self.bn1.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
             for i in self.bn2.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
             for i in self.bn3.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
 
     def forward(self, x):
         residual = x
@@ -123,11 +123,11 @@ class DCNBottleneck(nn.Module):
             self.bn2.eval()
             self.bn3.eval()
             for i in self.bn1.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
             for i in self.bn2.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
             for i in self.bn3.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
 
     def forward(self, x):
         residual = x
@@ -153,7 +153,7 @@ class DCNBottleneck(nn.Module):
         return out
 
 class conv1(nn.Module):
-    def __init__(self, requires_grad=False):
+    def __init__(self, requires_grad=True):
         super(conv1, self).__init__()
         self.inplanes = 64
 
@@ -165,7 +165,7 @@ class conv1(nn.Module):
         if not requires_grad:
             self.eval()
             for i in self.parameters():
-                i.requires_grad = False
+                i.requires_grad = True
 
     def forward(self, x):
         x = self.conv1(x)
@@ -189,7 +189,7 @@ class res_block(nn.Module):
             if fix_bn:
                 downsample[1].eval()
                 for i in downsample[1].parameters():
-                    i.requires_grad = False
+                    i.requires_grad = True
 
         layers = []
         layers.append(block(self.inplanes, planes, stride, dilation, downsample, fix_bn))
@@ -304,11 +304,11 @@ class resnet_rcnn(nn.Module):
     def freeze_backbone(self, freeze_at):
         assert freeze_at > 0
         for p in self.resnet_backbone.conv1.parameters():
-            p.requires_grad = False
+            p.requires_grad = True
         self.resnet_backbone.conv1.eval()
         for i in range(2, freeze_at + 1):
             for p in eval('self.resnet_backbone.res{}'.format(i)).parameters():
-                p.requires_grad = False
+                p.requires_grad = True
             eval('self.resnet_backbone.res{}'.format(i)).eval()
         
 class ResNetBackbone(nn.Module):
@@ -323,7 +323,7 @@ class ResNetBackbone(nn.Module):
         self.freeze_at = config.network.backbone_freeze_at
 
 
-        self.conv1 = conv1(requires_grad=False)
+        self.conv1 = conv1(requires_grad=True)
         self.res2 = res_block(64, blocks[0], fix_bn=self.fix_bn)
         self.res3 = res_block(128, blocks[1], block=DCNBottleneck if self.with_dconv <= 3 else Bottleneck,
                               stride=2, fix_bn=self.fix_bn, with_dpyramid=self.with_dpyramid)
@@ -337,15 +337,16 @@ class ResNetBackbone(nn.Module):
                               stride=res5_stride, dilation=res5_dilation, fix_bn=self.fix_bn)
         if self.freeze_at > 0:
             for p in self.conv1.parameters():
-                p.requires_grad = False
+                p.requires_grad = True
             self.conv1.eval()
             for i in range(2, self.freeze_at + 1):
                 for p in eval('self.res{}'.format(i)).parameters():
-                    p.requires_grad = False
+                    p.requires_grad = True
                 eval('self.res{}'.format(i)).eval()
 
     def forward(self, x):
 
+        #print("self.freeze_at = {}".format(self.freeze_at))
         conv1 = self.conv1(x).detach() if self.freeze_at == 1 else self.conv1(x)
         res2 = self.res2(conv1).detach() if self.freeze_at == 2 else self.res2(conv1)
 
