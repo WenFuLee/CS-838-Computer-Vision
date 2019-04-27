@@ -661,24 +661,24 @@ def upsnet_test(num_steps, step_size, epsilon):
     if config.test.vis_mask:
         test_dataset.vis_all_mask(all_boxes, all_masks, os.path.join(final_output_path, 'results', 'vis'))
     else:
-         
+        ''' 
         test_dataset.evaluate_boxes(all_boxes, os.path.join(final_output_path, 'results'))
         if config.network.has_mask_head:
             test_dataset.evaluate_masks(all_boxes, all_masks, os.path.join(final_output_path, 'results'))
-        
+        '''
         if config.network.has_panoptic_head:
             logging.info('unified pano result:')
             test_dataset.evaluate_panoptic(test_dataset.get_unified_pan_result(all_ssegs, all_panos, all_pano_cls_inds, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_unified', file_folder))
-        
+        '''
         if config.network.has_fcn_head:
             test_dataset.evaluate_ssegs(all_ssegs, os.path.join(final_output_path, 'results', 'ssegs'))
             # logging.info('combined pano result:')
             # test_dataset.evaluate_panoptic(test_dataset.get_combined_pan_result(all_ssegs, all_boxes, all_masks, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_combined'))
-        
+        '''
 
 if __name__ == "__main__":
     step_size=1
-    epsilon=[0.25, 1, 4, 16]
+    epsilon=[16]#[0.25, 1, 4, 16]
     print('\n\n\n\n')
     import math
     for i in range(len(epsilon)):
