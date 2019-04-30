@@ -418,6 +418,71 @@ def saveAttackImg(inTensor, imgName, save_path=None, mode=0):
         #fig.savefig(os.path.join(save_path, '{}.png'.format(1)), dpi=200)
     plt.close('all')
 
+def applyBiFilter(advIn, oriIn):
+
+    #print("advIn[0]['data'].dtype = {}".format(advIn[0]['data'].dtype))
+
+    imBefore = advIn[0]['data'].cpu().detach().numpy()
+    
+    im = np.empty([imBefore.shape[2], imBefore.shape[3], 3])
+
+    im[0:, 0:, 0] = imBefore[0, 2, 0:, 0:]
+    im[0:, 0:, 1] = imBefore[0, 1, 0:, 0:]
+    im[0:, 0:, 2] = imBefore[0, 0, 0:, 0:]
+
+    im_0_min = im[0:, 0:, 0].min()
+    im_1_min = im[0:, 0:, 1].min()
+    im_2_min = im[0:, 0:, 2].min()
+
+    '''
+    # <<Bilateral filter>>
+    im[0:, 0:, 0] = (im[0:, 0:, 0] - im[0:, 0:, 0].min()) / (im[0:, 0:, 0].max() - im[0:, 0:, 0].min())
+    im[0:, 0:, 1] = (im[0:, 0:, 1] - im[0:, 0:, 1].min()) / (im[0:, 0:, 1].max() - im[0:, 0:, 1].min())
+    im[0:, 0:, 2] = (im[0:, 0:, 2] - im[0:, 0:, 2].min()) / (im[0:, 0:, 2].max() - im[0:, 0:, 2].min())
+
+    print("im.dtype = {}".format(im.dtype))
+    #im.astype(float32)
+    im = np.float32(im)
+    print("im.dtype = {}".format(im.dtype))
+    #blurIm = cv2.bilateralFilter(im, 15, 15, 15) #16 #(im, 9, 10, 10) #(im, 9, 75, 75) #(im, 9, 1, 1)
+    blurIm = cv2.bilateralFilter(im, 1, 50, 50) #4
+
+    blurIm[0:, 0:, 0] = blurIm[0:, 0:, 0] * 255 + im_0_min
+    blurIm[0:, 0:, 1] = blurIm[0:, 0:, 1] * 255 + im_1_min
+    blurIm[0:, 0:, 2] = blurIm[0:, 0:, 2] * 255 + im_2_min
+    '''
+    # <<fastNlMeansDenoisingColored>>
+    im[0:, 0:, 0] = (im[0:, 0:, 0] - im_0_min) / (im[0:, 0:, 0].max() - im_0_min) * 255
+    im[0:, 0:, 1] = (im[0:, 0:, 1] - im_1_min) / (im[0:, 0:, 1].max() - im_1_min) * 255
+    im[0:, 0:, 2] = (im[0:, 0:, 2] - im_2_min) / (im[0:, 0:, 2].max() - im_2_min) * 255
+
+    #print("im.dtype = {}".format(im.dtype))
+    #im.astype(float32)
+    im = np.uint8(im)
+    #print("im.dtype = {}".format(im.dtype))
+    blurIm = cv2.fastNlMeansDenoisingColored(im,None,10,10,7,21)
+    #print("blurIm.dtype = {}".format(blurIm.dtype))
+    blurIm = np.float32(blurIm)
+    #print("blurIm.dtype = {}".format(blurIm.dtype))
+
+    blurIm[0:, 0:, 0] = blurIm[0:, 0:, 0] + im_0_min
+    blurIm[0:, 0:, 1] = blurIm[0:, 0:, 1] + im_1_min
+    blurIm[0:, 0:, 2] = blurIm[0:, 0:, 2] + im_2_min
+    
+
+    imBefore[0, 2, 0:, 0:] = blurIm[0:, 0:, 0]
+    imBefore[0, 1, 0:, 0:] = blurIm[0:, 0:, 1]
+    imBefore[0, 0, 0:, 0:] = blurIm[0:, 0:, 2]  
+
+    perturb = torch.from_numpy(imBefore).cuda() - advIn[0]['data']
+
+    advIn[0]['data'] = torch.from_numpy(imBefore).cuda()
+    #print("advIn[0]['data'].dtype = {}".format(advIn[0]['data'].dtype))
+
+    #perturb = advIn[0]['data'] - oriIn['data']
+
+    return advIn, perturb
+
 def upsnet_test(num_steps, step_size, epsilon):
 
     #pprint.pprint(config)
@@ -589,10 +654,12 @@ def upsnet_test(num_steps, step_size, epsilon):
             #with torch.set_grad_enabled(True):
             adv_input, perturb_out = attacker.perturb(test_model, *batch)
 
+            adv_input, perturb_out = applyBiFilter(adv_input, data)
+
             batch = []
             batch.append((adv_input[0], None))
-            saveAttackImg(adv_input[0]['data'], test_dataset.roidb[i_iter-1]['image'], os.path.join(final_output_path, 'results', 'attack', file_folder), mode=0)
-            saveAttackImg(perturb_out, test_dataset.roidb[i_iter-1]['image'], os.path.join(final_output_path, 'results', 'perturb', file_folder), mode=1)
+            saveAttackImg(adv_input[0]['data'], test_dataset.roidb[i_iter-1]['image'], os.path.join(final_output_path, 'results', 'attack_bi', file_folder), mode=0)
+            saveAttackImg(perturb_out, test_dataset.roidb[i_iter-1]['image'], os.path.join(final_output_path, 'results', 'perturb_bi', file_folder), mode=1)
 
             # forward the model
             output = test_model(*batch)
@@ -668,7 +735,7 @@ def upsnet_test(num_steps, step_size, epsilon):
         '''
         if config.network.has_panoptic_head:
             logging.info('unified pano result:')
-            test_dataset.evaluate_panoptic(test_dataset.get_unified_pan_result(all_ssegs, all_panos, all_pano_cls_inds, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_unified', file_folder))
+            test_dataset.evaluate_panoptic(test_dataset.get_unified_pan_result(all_ssegs, all_panos, all_pano_cls_inds, stuff_area_limit=config.test.panoptic_stuff_area_limit), os.path.join(final_output_path, 'results', 'pans_unified_bi', file_folder))
         '''
         if config.network.has_fcn_head:
             test_dataset.evaluate_ssegs(all_ssegs, os.path.join(final_output_path, 'results', 'ssegs'))
@@ -678,7 +745,7 @@ def upsnet_test(num_steps, step_size, epsilon):
 
 if __name__ == "__main__":
     step_size=1
-    epsilon=[16]#[0.25, 1, 4, 16]
+    epsilon=[0.25, 1, 4, 16]
     print('\n\n\n\n')
     import math
     for i in range(len(epsilon)):
