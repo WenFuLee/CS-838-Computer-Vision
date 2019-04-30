@@ -67,4 +67,4 @@ Attack and Defend:
 - Attack method: class PGDAttack(object)
 - Defend method: def applyBiFilter(advIn, oriIn)
 
-We provide serveral config files (16/4 GPUs for Cityscapes dataset) under upsnet/experiments folder.
+We provide serveral config files (1/4/16 GPUs for Cityscapes dataset) under upsnet/experiments folder.
