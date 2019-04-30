@@ -67,10 +67,4 @@ Attack and Defend:
 - Attack method: class PGDAttack(object)
 - Defend method: def applyBiFilter(advIn, oriIn)
 
-We provide serveral config files (16/4 GPUs for Cityscapes/COCO dataset) under upsnet/experiments folder.
-
-# Model & Demo
-
-The model weights that can reproduce numbers in our paper and the demo will be coming soon.
-
-
+We provide serveral config files (16/4 GPUs for Cityscapes dataset) under upsnet/experiments folder.
