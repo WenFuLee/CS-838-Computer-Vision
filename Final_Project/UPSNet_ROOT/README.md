@@ -28,13 +28,6 @@ If you find UPSNet is useful in your research, please consider citing:
 
 # Main Results
 
-COCO 2017 (trained on train-2017 set)
-
-|                | test split | PQ   | SQ   | RQ   | PQ<sup>Th</sup> | PQ<sup>St</sup> |
-|----------------|------------|------|------|------|-----------------|-----------------|
-| UPSNet-50      | val        | 42.5 | 78.0 | 52.4 | 48.5            | 33.4            |
-| UPSNet-101-DCN | test-dev   | 46.6 | 80.5 | 56.9 | 53.2            | 36.7            |
-
 Cityscapes
 
 |                | PQ   | SQ   | RQ   | PQ<sup>Th</sup> | PQ<sup>St</sup> |
@@ -61,10 +54,6 @@ For Cityscapes:
 
 Assuming you already downloaded Cityscapes dataset at `$CITYSCAPES_ROOT` and TrainIds label images are generated, please create a soft link by `ln -s $CITYSCAPES_ROOT data/cityscapes` under `UPSNet_ROOT`, and run `init_cityscapes.sh` to prepare Cityscapes dataset for UPSNet.
 
-For COCO:
-
-Assuming you already downloaded COCO dataset at `$COCO_ROOT` and have `annotations` and `images` folders under it, please create a soft link by `ln -s $COCO_ROOT data/coco` under `UPSNet_ROOT`, and run `init_coco.sh` to prepare COCO dataset for UPSNet.
-
 Training:
 
 `python upsnet/upsnet_end2end_train.py --cfg upsnet/experiments/upsnet_resnet50_cityscapes_1gpu.yaml`
@@ -76,6 +65,8 @@ Test:
 Attack and Defend:
 
 `python upsnet/upsnet_end2end_test_attack.py --cfg upsnet/experiments/upsnet_resnet50_cityscapes_1gpu.yaml`
+- Attack method: class PGDAttack(object)
+- Defend method: def applyBiFilter(advIn, oriIn)
 
 We provide serveral config files (16/4 GPUs for Cityscapes/COCO dataset) under upsnet/experiments folder.
 
