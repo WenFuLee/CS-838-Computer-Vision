@@ -31,6 +31,7 @@ from upsnet.operators.modules.unary_logits import MaskTerm, SegTerm
 from upsnet.operators.modules.mask_removal import MaskRemoval
 from upsnet.operators.modules.mask_matching import MaskMatching
 
+import copy
 
 class resnet_upsnet(resnet_rcnn):
     
@@ -84,10 +85,12 @@ class resnet_upsnet(resnet_rcnn):
 
     def forward(self, data, label=None):
 
-        print('check, check, check...')
+        #print('check, check, check...')
 
         res2, res3, res4, res5 = self.resnet_backbone(data['data'])
         fpn_p2, fpn_p3, fpn_p4, fpn_p5, fpn_p6 = self.fpn(res2, res3, res4, res5)
+        
+        self.fpn_p2 = copy.copy(fpn_p2)
 
         rpn_cls_score, rpn_cls_prob, rpn_bbox_pred = [], [], []
         for feat in [fpn_p2, fpn_p3, fpn_p4, fpn_p5, fpn_p6]:
@@ -158,6 +161,8 @@ class resnet_upsnet(resnet_rcnn):
             seg_logits, seg_inst_logits = self.seg_term(cls_idx, fcn_output['fcn_score'], gt_rois)
             mask_logits = self.mask_term(mask_score, gt_rois, cls_idx, fcn_output['fcn_score'])
 
+            self.seg_logits = copy.copy(seg_logits)
+
             if self.enable_void:
                 void_logits = torch.max(fcn_output['fcn_score'][:, (config.dataset.num_seg_classes - config.dataset.num_classes + 1):, ...], dim=1, keepdim=True)[0] - torch.max(seg_inst_logits, dim=1, keepdim=True)[0]
                 inst_logits = seg_inst_logits + mask_logits
@@ -176,6 +181,8 @@ class resnet_upsnet(resnet_rcnn):
             panoptic_acc = self.calc_panoptic_acc(panoptic_logits, panoptic_gt)
             panoptic_loss = self.panoptic_loss(panoptic_logits, panoptic_gt)
             panoptic_loss = panoptic_loss.mean()
+
+            self.panoptic_loss_val = copy.copy(panoptic_loss)
 
             output = {
                 'rpn_cls_loss': rpn_cls_loss.unsqueeze(0),
