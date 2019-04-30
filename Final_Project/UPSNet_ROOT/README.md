@@ -67,11 +67,14 @@ Assuming you already downloaded COCO dataset at `$COCO_ROOT` and have `annotatio
 
 Training:
 
-`python upsnet/upsnet_end2end_train.py --cfg upsnet/experiments/$EXP.yaml`
+`python upsnet/upsnet_end2end_train.py --cfg upsnet/experiments/upsnet_resnet50_cityscapes_1gpu.yaml`
 
 Test:
 
-`python upsnet/upsnet_end2end_test.py --cfg upsnet/experiments/$EXP.yaml`
+`python upsnet/upsnet_end2end_test.py --cfg upsnet/experiments/upsnet_resnet50_cityscapes_1gpu.yaml`
+
+Attack and Defend:
+`python upsnet/upsnet_end2end_test_attack.py --cfg upsnet/experiments/upsnet_resnet50_cityscapes_1gpu.yaml`
 
 We provide serveral config files (16/4 GPUs for Cityscapes/COCO dataset) under upsnet/experiments folder.
 
