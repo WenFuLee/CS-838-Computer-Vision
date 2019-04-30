@@ -33,7 +33,6 @@ Cityscapes
 |                | PQ   | SQ   | RQ   | PQ<sup>Th</sup> | PQ<sup>St</sup> |
 |----------------|------|------|------|-----------------|-----------------|
 | UPSNet-50      | 59.3 | 79.7 | 73.0 | 54.6            | 62.7            |
-| UPSNet-101-COCO (ms test) | 61.8 | 81.3 | 74.8 | 57.6 | 64.8 |
 
 # Requirements: Software
 
